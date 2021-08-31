@@ -1,6 +1,7 @@
 //FUNCTIONS RANDOM USERS
 const axios = require('axios');
 const { v4: uuid } = require('uuid');
+
 const getRandomUser = async() => {
     const url = 'https://randomuser.me/api';
     const { data } = await axios.get(url);
@@ -15,6 +16,7 @@ const getRandomUser = async() => {
     };
     return roommate;
 }
+
 
 module.exports = {
     getRandomUser

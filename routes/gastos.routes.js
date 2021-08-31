@@ -1,15 +1,9 @@
 const { Router } = require('express');
-const {} = require('../controllers/gastos.controllers');
+const { getGastos } = require('../controllers/gastos.controllers');
 
 const router = Router();
 
-router.get('/', )
-
-router.post('/', )
-
-router.put('/', )
-
-router.delete('/', )
+router.get('/', getGastos);
 
 
 

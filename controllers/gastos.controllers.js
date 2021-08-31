@@ -3,74 +3,114 @@ const { response, request } = require('express')
 const axios = require('axios');
 const { v4: uuid } = require('uuid');
 const fs = require('fs');
-const pathDB = './db/gastos.json';
+const pathGastos = './db/gastos.json';
+const pathRoommates = './db/roommates.json';
 
 
 
 
 
-const readDB = () => {
-    const data = JSON.parse(fs.readFileSync(pathDB, 'utf-8'));
-    console.log(data);
-    return data;
+const readDB = (path) => {
+    try {
+        const data = JSON.parse(fs.readFileSync(path, 'utf-8'));
+        return data;
+    } catch (error) {
+        console.log(error);
+    }
 }
 
-const saveDB = (data) => {
-    fs.writeFileSync(pathDB, JSON.stringify({ gastos: data }));
-
+const saveDB = (data, path) => {
+    try {
+        path.includes('gastos') ? fs.writeFileSync(path, JSON.stringify({ gastos: data })) : fs.writeFileSync(path, JSON.stringify({ roommates: data }));
+    } catch (error) {
+        console.log(error);
+    }
 }
 
 
+//UPDATE ROOMMATES
+const updateRoommates = async() => {
+    const { roommates } = readDB(pathRoommates);
+    const { gastos } = readDB(pathGastos);
+    const roommateUpdate = roommates.map((r) => {
+        r.debe = 0;
+        gastos.forEach((g) => {
+            if (r.nombre === g.roommate) {
+                r.debe = r.debe + g.monto;
+            }
+        });
+        return r;
+    });
+    saveDB(roommateUpdate, pathRoommates);
+}
 
 
 
 //HTTP METHODS
-const getRoommates = (req = request, res = response) => {
-    const { roommates } = readDB();
-    console.log(roommates);
-    res.json({ roommates });
+const getGastos = (req = request, res = response) => {
+    try {
+        const { gastos } = readDB(pathGastos);
+        res.json({ gastos });
+    } catch (error) {
+        console.log(error);
+    }
+
 }
 
-const createRoommate = async(req = request, res = response) => {
-    const roommate = await getRandomUser(url);
-    const { roommates } = readDB();
-    roommates.push(roommate);
-    saveDB(roommates);
-    res.json(JSON.stringify(roommates));
+const createGasto = async(req = request, res = response) => {
+    try {
+        const { roommates } = readDB(pathRoommates);
+        const { gastos } = readDB(pathGastos);
+        const { roommate, descripcion, monto } = req.body;
+        const newGasto = {
+            id: uuid(),
+            roommate,
+            descripcion,
+            monto
+        };
+        gastos.push(newGasto);
+        saveDB(gastos, pathGastos);
+        updateRoommates();
+        res.end();
+    } catch (error) {
+        console.log(error);
+    }
 }
 
-const updateSport = async(req = request, res = response) => {
-    const { nombre, precio } = req.body;
-    const { deportes } = readDB();
-    const deportesUpdate = deportes.map((deporte) => {
-        if (deporte.nombre === nombre) {
-            deporte.precio = precio
+const updateGasto = async(req = request, res = response) => {
+    const { id } = req.query;
+    const { gastos } = readDB(pathGastos);
+    const gastoUpdate = gastos.map((gasto) => {
+        if (gasto.id === id) {
+            gasto.roommate = req.body.roommate;
+            gasto.descripcion = req.body.descripcion;
+            gasto.monto = req.body.monto;
         }
-        return deporte;
+        return gasto;
     });
-    saveDB(deportesUpdate);
-    res.json(JSON.stringify({ nombre, precio }));
+    saveDB(gastoUpdate, pathGastos);
+    updateRoommates();
+    res.end();
+    // res.json(JSON.stringify({ nombre, precio }));
 }
 
-// const patchUsers = (req = request, res = response) => {
-//     res.json({
-//         msg: 'Patch API Controller'
-//     })
-// }
 
-const deleteSport = async(req = request, res = response) => {
-    const { nombre, precio } = req.query;
-    const { deportes } = readDB();
-    const deportesDelete = deportes.filter((deporte) => {
-        return deporte.nombre !== nombre;
+
+const deleteGasto = async(req = request, res = response) => {
+    const { id } = req.query;
+    const { gastos } = readDB(pathGastos);
+    const gastoDelete = gastos.filter((gasto) => {
+        return gasto.id !== id;
     });
-    saveDB(deportesDelete);
-    res.json(JSON.stringify({ nombre, precio }));
+    saveDB(gastoDelete, pathGastos);
+    updateRoommates();
+    res.end();
+
 }
 
 module.exports = {
-    getRoommates,
-    createRoommate,
-    updateSport,
-    deleteSport
+    getGastos,
+    createGasto,
+    updateGasto,
+    deleteGasto
 }
